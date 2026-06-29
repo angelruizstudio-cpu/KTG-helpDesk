@@ -16,24 +16,32 @@ export async function GET(req: Request) {
     const status = searchParams.get("status");
     const priority = searchParams.get("priority");
     const assigneeId = searchParams.get("assigneeId");
+    const search = searchParams.get("search");
+    const page = Math.max(1, Number(searchParams.get("page") ?? "1"));
+    const pageSize = 20;
 
     const where: Record<string, unknown> = {};
     if (status) where.status = status;
     if (priority) where.priority = priority;
     if (assigneeId) where.assigneeId = assigneeId;
+    if (search) where.title = { contains: search, mode: "insensitive" };
 
     if (session.user.role === "CLIENT") {
       where.creatorId = session.user.id;
     }
 
-    const tickets = await prisma.ticket.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-      include: { creator: true, assignee: true },
-      take: 50,
-    });
+    const [tickets, total] = await Promise.all([
+      prisma.ticket.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        include: { creator: true, assignee: true },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      prisma.ticket.count({ where }),
+    ]);
 
-    return NextResponse.json({ tickets });
+    return NextResponse.json({ tickets, total, page, pageSize });
   } catch (err) {
     console.error("Failed to list tickets:", err);
     return NextResponse.json({ error: "No se pudieron cargar los tickets" }, { status: 500 });

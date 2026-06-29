@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { auth } from "@/lib/auth";
+import { NotificationBell } from "@/components/notification-bell";
 
 export async function Nav() {
   const session = await auth();
@@ -18,6 +19,9 @@ export async function Nav() {
           Usuarios
         </Link>
       )}
+      <div className="ml-auto">
+        <NotificationBell />
+      </div>
     </nav>
   );
 }

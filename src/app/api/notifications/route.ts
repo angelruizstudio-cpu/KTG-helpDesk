@@ -2,21 +2,30 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-export async function GET() {
+export async function GET(req: Request) {
   const session = await auth();
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
-    const notifications = await prisma.notification.findMany({
-      where: { userId: session.user.id },
-      include: { ticket: true },
-      orderBy: { createdAt: "desc" },
-      take: 50,
-    });
+    const { searchParams } = new URL(req.url);
+    const page = Math.max(1, Number(searchParams.get("page") ?? "1"));
+    const pageSize = 20;
 
-    return NextResponse.json({ notifications });
+    const [notifications, total, unreadCount] = await Promise.all([
+      prisma.notification.findMany({
+        where: { userId: session.user.id },
+        include: { ticket: true },
+        orderBy: { createdAt: "desc" },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      prisma.notification.count({ where: { userId: session.user.id } }),
+      prisma.notification.count({ where: { userId: session.user.id, read: false } }),
+    ]);
+
+    return NextResponse.json({ notifications, total, page, pageSize, unreadCount });
   } catch (err) {
     console.error("Failed to list notifications:", err);
     return NextResponse.json({ error: "No se pudieron cargar las notificaciones" }, { status: 500 });
