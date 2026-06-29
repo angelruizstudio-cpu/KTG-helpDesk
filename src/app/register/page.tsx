@@ -1,14 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 
 export default function RegisterPage() {
-  const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [registered, setRegistered] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -26,7 +25,17 @@ export default function RegisterPage() {
       return;
     }
 
-    router.push("/login");
+    setRegistered(true);
+  }
+
+  if (registered) {
+    return (
+      <div className="flex flex-1 items-center justify-center">
+        <p className="max-w-sm text-center">
+          Te enviamos un email de verificación. Confirma tu cuenta antes de iniciar sesión.
+        </p>
+      </div>
+    );
   }
 
   return (

@@ -8,13 +8,19 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const notifications = await prisma.notification.findMany({
-    where: { userId: session.user.id },
-    include: { ticket: true },
-    orderBy: { createdAt: "desc" },
-  });
+  try {
+    const notifications = await prisma.notification.findMany({
+      where: { userId: session.user.id },
+      include: { ticket: true },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+    });
 
-  return NextResponse.json({ notifications });
+    return NextResponse.json({ notifications });
+  } catch (err) {
+    console.error("Failed to list notifications:", err);
+    return NextResponse.json({ error: "No se pudieron cargar las notificaciones" }, { status: 500 });
+  }
 }
 
 export async function PATCH(req: Request) {
@@ -24,16 +30,24 @@ export async function PATCH(req: Request) {
   }
 
   const { id } = await req.json();
-
-  const notification = await prisma.notification.findUnique({ where: { id } });
-  if (!notification || notification.userId !== session.user.id) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!id || typeof id !== "string") {
+    return NextResponse.json({ error: "id requerido" }, { status: 400 });
   }
 
-  const updated = await prisma.notification.update({
-    where: { id },
-    data: { read: true },
-  });
+  try {
+    const notification = await prisma.notification.findUnique({ where: { id } });
+    if (!notification || notification.userId !== session.user.id) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
 
-  return NextResponse.json({ notification: updated });
+    const updated = await prisma.notification.update({
+      where: { id },
+      data: { read: true },
+    });
+
+    return NextResponse.json({ notification: updated });
+  } catch (err) {
+    console.error("Failed to update notification:", err);
+    return NextResponse.json({ error: "No se pudo actualizar la notificación" }, { status: 500 });
+  }
 }

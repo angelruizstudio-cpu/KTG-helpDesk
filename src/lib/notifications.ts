@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { sendNotificationEmail } from "@/lib/email";
+import { sendEmail } from "@/lib/email";
 import type { NotificationType } from "@prisma/client";
 
 export async function notifyUser(params: {
@@ -17,6 +17,6 @@ export async function notifyUser(params: {
 
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (user) {
-    await sendNotificationEmail(user.email, subject, message);
+    await sendEmail(user.email, subject, message);
   }
 }

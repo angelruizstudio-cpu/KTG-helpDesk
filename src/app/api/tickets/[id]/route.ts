@@ -10,25 +10,30 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { id } = await params;
-  const ticket = await prisma.ticket.findUnique({
-    where: { id },
-    include: {
-      creator: true,
-      assignee: true,
-      comments: { include: { author: true }, orderBy: { createdAt: "asc" } },
-    },
-  });
+  try {
+    const { id } = await params;
+    const ticket = await prisma.ticket.findUnique({
+      where: { id },
+      include: {
+        creator: true,
+        assignee: true,
+        comments: { include: { author: true }, orderBy: { createdAt: "asc" } },
+      },
+    });
 
-  if (!ticket) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+    if (!ticket) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+
+    if (session.user.role === "CLIENT" && ticket.creatorId !== session.user.id) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    return NextResponse.json({ ticket });
+  } catch (err) {
+    console.error("Failed to fetch ticket:", err);
+    return NextResponse.json({ error: "No se pudo cargar el ticket" }, { status: 500 });
   }
-
-  if (session.user.role === "CLIENT" && ticket.creatorId !== session.user.id) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
-  return NextResponse.json({ ticket });
 }
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -44,35 +49,40 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const existing = await prisma.ticket.findUnique({ where: { id } });
-  if (!existing) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
-  }
+  try {
+    const existing = await prisma.ticket.findUnique({ where: { id } });
+    if (!existing) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
 
-  const ticket = await prisma.ticket.update({
-    where: { id },
-    data: parsed.data,
-  });
-
-  if (parsed.data.assigneeId && parsed.data.assigneeId !== existing.assigneeId) {
-    await notifyUser({
-      userId: parsed.data.assigneeId,
-      ticketId: ticket.id,
-      type: "TICKET_ASSIGNED",
-      subject: `Te asignaron el ticket: ${ticket.title}`,
-      message: `Se te ha asignado el ticket: ${ticket.title}`,
+    const ticket = await prisma.ticket.update({
+      where: { id },
+      data: parsed.data,
     });
-  }
 
-  if (parsed.data.status && parsed.data.status !== existing.status) {
-    await notifyUser({
-      userId: existing.creatorId,
-      ticketId: ticket.id,
-      type: "TICKET_STATUS_CHANGED",
-      subject: `Tu ticket cambió de estado: ${ticket.title}`,
-      message: `El ticket "${ticket.title}" ahora está en estado ${ticket.status}.`,
-    });
-  }
+    if (parsed.data.assigneeId && parsed.data.assigneeId !== existing.assigneeId) {
+      await notifyUser({
+        userId: parsed.data.assigneeId,
+        ticketId: ticket.id,
+        type: "TICKET_ASSIGNED",
+        subject: `Te asignaron el ticket: ${ticket.title}`,
+        message: `Se te ha asignado el ticket: ${ticket.title}`,
+      });
+    }
 
-  return NextResponse.json({ ticket });
+    if (parsed.data.status && parsed.data.status !== existing.status) {
+      await notifyUser({
+        userId: existing.creatorId,
+        ticketId: ticket.id,
+        type: "TICKET_STATUS_CHANGED",
+        subject: `Tu ticket cambió de estado: ${ticket.title}`,
+        message: `El ticket "${ticket.title}" ahora está en estado ${ticket.status}.`,
+      });
+    }
+
+    return NextResponse.json({ ticket });
+  } catch (err) {
+    console.error("Failed to update ticket:", err);
+    return NextResponse.json({ error: "No se pudo actualizar el ticket" }, { status: 500 });
+  }
 }

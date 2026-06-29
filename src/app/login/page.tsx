@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -47,6 +48,9 @@ export default function LoginPage() {
         <button type="submit" className="rounded-full bg-foreground px-5 py-3 text-background">
           Entrar
         </button>
+        <Link href="/forgot-password" className="text-sm text-zinc-500 underline">
+          Olvidé mi contraseña
+        </Link>
       </form>
     </div>
   );

@@ -9,19 +9,19 @@ async function main() {
   const admin = await prisma.user.upsert({
     where: { email: "admin@ktg.com" },
     update: {},
-    create: { name: "Admin", email: "admin@ktg.com", passwordHash, role: "ADMIN" },
+    create: { name: "Admin", email: "admin@ktg.com", passwordHash, role: "ADMIN", emailVerified: new Date() },
   });
 
   const agent = await prisma.user.upsert({
     where: { email: "agent@ktg.com" },
     update: {},
-    create: { name: "Agente Soporte", email: "agent@ktg.com", passwordHash, role: "AGENT" },
+    create: { name: "Agente Soporte", email: "agent@ktg.com", passwordHash, role: "AGENT", emailVerified: new Date() },
   });
 
   const client = await prisma.user.upsert({
     where: { email: "cliente@ktg.com" },
     update: {},
-    create: { name: "Cliente Demo", email: "cliente@ktg.com", passwordHash, role: "CLIENT" },
+    create: { name: "Cliente Demo", email: "cliente@ktg.com", passwordHash, role: "CLIENT", emailVerified: new Date() },
   });
 
   await prisma.ticket.create({
