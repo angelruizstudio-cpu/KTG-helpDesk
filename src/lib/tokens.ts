@@ -39,3 +39,12 @@ export async function sendPasswordResetEmail(email: string, name: string, token:
     `Hola ${name}, restablece tu contraseña visitando: ${url}\n\nEste enlace expira en 1 hora. Si no lo solicitaste, ignora este mensaje.`
   );
 }
+
+export async function sendInviteEmail(email: string, name: string, token: string) {
+  const url = `${env.NEXTAUTH_URL}/reset-password?token=${token}`;
+  await sendEmail(
+    email,
+    "Te invitaron a KTG Ticket System",
+    `Hola ${name}, fuiste agregado al equipo. Define tu contraseña visitando: ${url}\n\nEste enlace expira en 1 hora.`
+  );
+}
